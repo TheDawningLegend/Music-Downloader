@@ -2,9 +2,13 @@ import os
 import subprocess
 
 import yt_dlp
+import imageio_ffmpeg
 from PIL import Image
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import error
+
+
+FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
 
 raw_input = input("Enter YouTube Playlist ID, YouTube URL, or YouTube Music URL:\n> ").strip()
 if raw_input.startswith("http"):
@@ -21,6 +25,7 @@ os.makedirs(TARGET_DIR, exist_ok=True)
 
 def download_music():
     ydl_opts = {
+        "ffmpeg_location": FFMPEG_PATH,
         "format": "bestaudio/best",
         "outtmpl": os.path.join(TARGET_DIR, "%(album)s", "%(playlist_index)02d - %(title)s.%(ext)s"),
         "postprocessors": [
@@ -48,7 +53,7 @@ def crop_to_square(image_path):
 
 def extract_cover(mp3_path, out_jpg):
     try:
-        subprocess.run(["ffmpeg", "-y", "-i", mp3_path, "-an", "-vcodec", "copy", out_jpg],
+        subprocess.run([FFMPEG_PATH, "-y", "-i", mp3_path, "-an", "-vcodec", "copy", out_jpg],
                        check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return True
     except subprocess.CalledProcessError:
@@ -58,7 +63,7 @@ def replace_cover(mp3_path, new_cover_path):
     temp_output = mp3_path + ".temp.mp3"
     try:
         subprocess.run([
-            "ffmpeg", "-y", "-i", mp3_path, "-i", new_cover_path,
+            FFMPEG_PATH, "-y", "-i", mp3_path, "-i", new_cover_path,
             "-map", "0", "-map", "1", "-c", "copy",
             "-id3v2_version", "3",
             "-metadata:s:v", "title=Album cover",
